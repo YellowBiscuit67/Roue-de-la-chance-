@@ -676,8 +676,8 @@
     <!-- Volume -->
     <div class="volume-group">
       <i class="ti ti-volume volume-icon" id="volumeIcon" title="Muet / Activer"></i>
-      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="10" aria-label="Volume">
-      <span class="volume-pct" id="volumePct">10%</span>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="3" aria-label="Volume">
+      <span class="volume-pct" id="volumePct">3%</span>
     </div>
   </div>
 
@@ -734,7 +734,7 @@
     let ytPlayer = null;
     let ytReady = false;
     let isPlaying = false;
-    let currentVolume = 10;
+    let currentVolume = 3;
     let isMuted = false;
 
     // Charger l'API YouTube
@@ -839,7 +839,7 @@
         slider.value = 0;
         document.getElementById('volumePct').textContent = '0%';
       } else {
-        const restore = currentVolume > 0 ? currentVolume : 10;
+        const restore = currentVolume > 0 ? currentVolume : 3;
         currentVolume = restore;
         if (ytReady && ytPlayer) ytPlayer.setVolume(restore);
         icon.className = 'ti ti-volume volume-icon';
