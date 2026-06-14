@@ -14,67 +14,90 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       z-index: -2;
-      background: linear-gradient(180deg, #0a4f5c 0%, #0e7c8a 30%, #14a3b8 60%, #1bc5db 85%, #7ee8f5 100%);
+      background: linear-gradient(180deg,
+        #021b2a 0%,
+        #04354d 10%,
+        #065a78 25%,
+        #0a7e9e 40%,
+        #0ea5c4 55%,
+        #18c5df 70%,
+        #4dd9e8 82%,
+        #8aeee6 92%,
+        #c0f7f0 100%
+      );
     }
 
-    .waves-container {
+    #oceanCanvas {
       position: fixed;
-      bottom: 0; left: 0;
-      width: 100%; height: 220px;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       z-index: -1;
-      overflow: hidden;
+      pointer-events: none;
     }
 
-    .wave {
-      position: absolute;
-      bottom: 0;
-      width: 200%;
-      height: 100%;
-      border-radius: 50% 50% 0 0;
-      opacity: 0.5;
+    /* ── Particules lumineuses (caustiques) ── */
+    .caustic {
+      position: fixed;
+      border-radius: 50%;
+      z-index: -1;
+      pointer-events: none;
+      animation: causticFloat linear infinite;
+      mix-blend-mode: soft-light;
     }
 
-    .wave-1 {
-      background: rgba(20, 163, 184, 0.45);
-      animation: waveMove1 7s ease-in-out infinite alternate;
-    }
-    .wave-2 {
-      background: rgba(27, 197, 219, 0.35);
-      animation: waveMove2 9s ease-in-out infinite alternate;
-      bottom: 10px;
-    }
-    .wave-3 {
-      background: rgba(126, 232, 245, 0.25);
-      animation: waveMove3 11s ease-in-out infinite alternate;
-      bottom: 20px;
-    }
-
-    @keyframes waveMove1 {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-25%); }
-    }
-    @keyframes waveMove2 {
-      0%   { transform: translateX(-10%); }
-      100% { transform: translateX(15%); }
-    }
-    @keyframes waveMove3 {
-      0%   { transform: translateX(-5%); }
-      100% { transform: translateX(-30%); }
+    @keyframes causticFloat {
+      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+      10%  { opacity: 0.6; }
+      50%  { transform: translateY(-60vh) translateX(30px) scale(1.2); opacity: 0.4; }
+      90%  { opacity: 0.1; }
+      100% { transform: translateY(-110vh) translateX(-20px) scale(0.6); opacity: 0; }
     }
 
     /* ── Bulles animées ── */
     .bubble {
       position: fixed;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
       z-index: -1;
+      pointer-events: none;
       animation: bubbleRise linear infinite;
+    }
+    .bubble::after {
+      content: '';
+      position: absolute;
+      top: 18%; left: 22%;
+      width: 30%; height: 20%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.55);
+      filter: blur(1px);
     }
 
     @keyframes bubbleRise {
-      0%   { transform: translateY(0) scale(1); opacity: 0.6; }
-      50%  { opacity: 0.3; }
-      100% { transform: translateY(-110vh) scale(0.4); opacity: 0; }
+      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+      5%   { opacity: 0.7; }
+      25%  { transform: translateY(-25vh) translateX(12px) scale(0.95); opacity: 0.6; }
+      50%  { transform: translateY(-55vh) translateX(-8px) scale(0.85); opacity: 0.45; }
+      75%  { transform: translateY(-80vh) translateX(15px) scale(0.7); opacity: 0.25; }
+      100% { transform: translateY(-110vh) translateX(-5px) scale(0.5); opacity: 0; }
+    }
+
+    /* ── Rayons de lumière ── */
+    .light-ray {
+      position: fixed;
+      top: -10%;
+      width: 120px;
+      height: 130%;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0;
+      transform-origin: top center;
+      animation: rayPulse ease-in-out infinite;
+    }
+
+    @keyframes rayPulse {
+      0%   { opacity: 0; transform: rotate(var(--ray-angle)) scaleX(0.8); }
+      30%  { opacity: var(--ray-max-opacity); }
+      70%  { opacity: var(--ray-max-opacity); }
+      100% { opacity: 0; transform: rotate(var(--ray-angle)) scaleX(1.2); }
     }
 
     /* ── Body ── */
@@ -561,11 +584,9 @@
 
   <!-- Fond océan animé -->
   <div class="ocean-bg"></div>
-  <div class="waves-container">
-    <div class="wave wave-1"></div>
-    <div class="wave wave-2"></div>
-    <div class="wave wave-3"></div>
-  </div>
+  <canvas id="oceanCanvas"></canvas>
+  <!-- Rayons de lumière générés par JS -->
+  <div id="lightRays"></div>
 
   <!-- YouTube player (caché, sert de source audio) -->
   <div id="ytPlayerContainer">
@@ -787,24 +808,176 @@
     document.getElementById('volumeIcon').addEventListener('click', toggleMute);
 
     /* ═══════════════════════════════════════════
+       Océan Canvas — Vagues réalistes animées
+    ═══════════════════════════════════════════ */
+    (function initOcean() {
+      const canvas = document.getElementById('oceanCanvas');
+      const ctx = canvas.getContext('2d');
+      let W, H, time = 0;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // Paramètres des vagues (couche, amplitude, fréquence, vitesse, couleur, yBase)
+      const waveLayers = [
+        { amp: 28, freq: 0.006, speed: 0.012, yBase: 0.62, color: 'rgba(8, 80, 110, 0.35)' },
+        { amp: 22, freq: 0.009, speed: 0.018, yBase: 0.66, color: 'rgba(14, 130, 170, 0.30)' },
+        { amp: 18, freq: 0.012, speed: 0.025, yBase: 0.70, color: 'rgba(20, 165, 196, 0.28)' },
+        { amp: 14, freq: 0.015, speed: 0.032, yBase: 0.74, color: 'rgba(24, 197, 223, 0.25)' },
+        { amp: 10, freq: 0.020, speed: 0.040, yBase: 0.78, color: 'rgba(77, 217, 232, 0.22)' },
+        { amp: 7,  freq: 0.028, speed: 0.050, yBase: 0.82, color: 'rgba(138, 238, 230, 0.20)' },
+        { amp: 5,  freq: 0.035, speed: 0.060, yBase: 0.86, color: 'rgba(192, 247, 240, 0.18)' },
+      ];
+
+      // Dessiner une seule couche de vague
+      function drawWave(layer, t) {
+        ctx.beginPath();
+        ctx.moveTo(0, H);
+        for (let x = 0; x <= W; x += 3) {
+          const y = layer.yBase * H
+            + Math.sin(x * layer.freq + t * layer.speed * 60) * layer.amp
+            + Math.sin(x * layer.freq * 1.8 + t * layer.speed * 40 + 1.5) * layer.amp * 0.4
+            + Math.sin(x * layer.freq * 0.5 + t * layer.speed * 20 + 3.0) * layer.amp * 0.25;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, H);
+        ctx.closePath();
+        ctx.fillStyle = layer.color;
+        ctx.fill();
+      }
+
+      // Reflets / mousse sur les crêtes
+      function drawFoam(t) {
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        for (let i = 0; i < 40; i++) {
+          const baseX = (i * W / 40 + t * 15) % W;
+          const baseY = 0.68 * H + Math.sin(baseX * 0.01 + t * 0.8) * 18;
+          const size = 2 + Math.sin(t * 2 + i) * 1.5;
+          ctx.beginPath();
+          ctx.arc(baseX, baseY, Math.max(1, size), 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // Particules flottantes (plancton lumineux)
+      const particles = [];
+      for (let i = 0; i < 30; i++) {
+        particles.push({
+          x: Math.random() * 2000,
+          y: Math.random() * 1200,
+          size: 1 + Math.random() * 2.5,
+          speedX: (Math.random() - 0.5) * 0.3,
+          speedY: (Math.random() - 0.5) * 0.2,
+          pulse: Math.random() * Math.PI * 2
+        });
+      }
+
+      function drawParticles(t) {
+        ctx.save();
+        particles.forEach(p => {
+          p.x += p.speedX;
+          p.y += p.speedY;
+          if (p.x < 0) p.x = W;
+          if (p.x > W) p.x = 0;
+          if (p.y < 0) p.y = H;
+          if (p.y > H) p.y = 0;
+          const alpha = 0.15 + Math.sin(t * 1.5 + p.pulse) * 0.12;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(180, 255, 245, ${Math.max(0, alpha)})`;
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function animate() {
+        time += 0.016;
+        ctx.clearRect(0, 0, W, H);
+
+        // Dessiner les vagues de l'arrière vers l'avant
+        waveLayers.forEach(layer => drawWave(layer, time));
+
+        // Mousse
+        drawFoam(time);
+
+        // Particules
+        drawParticles(time);
+
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    /* ═══════════════════════════════════════════
        Bulles d'océan (générées dynamiquement)
     ═══════════════════════════════════════════ */
     function createBubbles() {
-      const count = 18;
+      const count = 22;
       for (let i = 0; i < count; i++) {
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
-        const size = 6 + Math.random() * 30;
+        const size = 4 + Math.random() * 28;
+        const hue = 170 + Math.random() * 30;
         bubble.style.width = size + 'px';
         bubble.style.height = size + 'px';
         bubble.style.left = Math.random() * 100 + '%';
         bubble.style.bottom = '-' + size + 'px';
-        bubble.style.animationDuration = (8 + Math.random() * 14) + 's';
-        bubble.style.animationDelay = (Math.random() * 10) + 's';
+        bubble.style.background = `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35), rgba(${120+Math.random()*40},${220+Math.random()*35},${230+Math.random()*25},0.12))`;
+        bubble.style.border = `1px solid rgba(255,255,255,${0.08 + Math.random() * 0.12})`;
+        bubble.style.animationDuration = (10 + Math.random() * 18) + 's';
+        bubble.style.animationDelay = (Math.random() * 15) + 's';
         document.body.appendChild(bubble);
       }
     }
     createBubbles();
+
+    /* ── Caustiques lumineuses ── */
+    function createCaustics() {
+      const count = 12;
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'caustic';
+        const size = 60 + Math.random() * 150;
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.left = Math.random() * 100 + '%';
+        el.style.bottom = Math.random() * 40 + '%';
+        el.style.background = `radial-gradient(circle, rgba(${100+Math.random()*80},${230+Math.random()*25},${220+Math.random()*35},0.25), transparent 70%)`;
+        el.style.animationDuration = (12 + Math.random() * 20) + 's';
+        el.style.animationDelay = (Math.random() * 12) + 's';
+        document.body.appendChild(el);
+      }
+    }
+    createCaustics();
+
+    /* ── Rayons de lumière depuis la surface ── */
+    function createLightRays() {
+      const container = document.getElementById('lightRays');
+      const count = 5;
+      for (let i = 0; i < count; i++) {
+        const ray = document.createElement('div');
+        ray.className = 'light-ray';
+        const leftPos = 5 + Math.random() * 90;
+        const angle = -15 + Math.random() * 30;
+        const maxOpacity = 0.04 + Math.random() * 0.06;
+        ray.style.left = leftPos + '%';
+        ray.style.setProperty('--ray-angle', angle + 'deg');
+        ray.style.setProperty('--ray-max-opacity', maxOpacity);
+        ray.style.background = `linear-gradient(180deg, rgba(180,255,245,0.3) 0%, rgba(100,230,220,0.1) 40%, transparent 100%)`;
+        ray.style.animationDuration = (6 + Math.random() * 8) + 's';
+        ray.style.animationDelay = (Math.random() * 6) + 's';
+        ray.style.width = (80 + Math.random() * 100) + 'px';
+        container.appendChild(ray);
+      }
+    }
+    createLightRays();
 
     /* ═══════════════════════════════════════════
        Constantes & état
