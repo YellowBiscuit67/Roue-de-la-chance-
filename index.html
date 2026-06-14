@@ -1492,7 +1492,7 @@
       clacOsc.type = 'triangle';
       clacOsc.frequency.setValueAtTime(800, now);
       clacOsc.frequency.exponentialRampToValueAtTime(200, now + 0.015);
-      const clacVol = 0.04 + speedNorm * 0.06;
+      const clacVol = 0.01 + speedNorm * 0.015;
       clacGain.gain.setValueAtTime(clacVol, now);
       clacGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
       clacOsc.start(now);
@@ -1512,7 +1512,7 @@
       clickFilter.frequency.value = 2500 + speedNorm * 1500;
       clickFilter.Q.value = 1.8;
 
-      const clickVol = 0.03 + speedNorm * 0.05;
+      const clickVol = 0.008 + speedNorm * 0.012;
       clickGain.gain.setValueAtTime(clickVol, now);
       clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
       clickOsc.start(now);
@@ -1530,7 +1530,7 @@
       resOsc.frequency.value = 3200 + speedNorm * 2000;
       resOsc2.type = 'sine';
       resOsc2.frequency.value = (3200 + speedNorm * 2000) * 1.5; // harmonique quinte
-      const resVol = 0.01 + speedNorm * 0.03;
+      const resVol = 0.003 + speedNorm * 0.007;
       resGain.gain.setValueAtTime(0.001, now);
       resGain.gain.linearRampToValueAtTime(resVol, now + 0.003);
       resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
@@ -1555,7 +1555,7 @@
       noiseGain.connect(tickAudioCtx.destination);
       noiseFilter.type = 'highpass';
       noiseFilter.frequency.value = 4000 + speedNorm * 3000;
-      const noiseVol = 0.015 + speedNorm * 0.02;
+      const noiseVol = 0.004 + speedNorm * 0.006;
       noiseGain.gain.setValueAtTime(noiseVol, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
       noiseSource.start(now);
@@ -1572,7 +1572,7 @@
       bodyOsc.frequency.value = 80 + speedNorm * 40;
       bodyFilter.type = 'lowpass';
       bodyFilter.frequency.value = 400;
-      const bodyVol = 0.015 + speedNorm * 0.02;
+      const bodyVol = 0.004 + speedNorm * 0.006;
       bodyGain.gain.setValueAtTime(bodyVol, now);
       bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
       bodyOsc.start(now);
