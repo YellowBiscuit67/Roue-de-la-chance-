@@ -164,24 +164,24 @@
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.9);
-      background: rgba(255,255,255,0.95);
-      color: #0e7c8a;
-      font-size: 22px;
+      border: 3px solid #ffffff;
+      background: #0055aa;
+      color: #fff;
+      font-size: 20px;
       cursor: pointer;
       z-index: 5;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.2), 0 0 20px rgba(14,124,138,0.15);
+      box-shadow: 0 2px 12px rgba(0,85,170,0.3), 0 0 20px rgba(0,85,170,0.2);
       transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
       padding: 0;
       line-height: 1;
     }
     .wheel-center-btn:hover {
       transform: translate(-50%, -50%) scale(1.12);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 0 30px rgba(14,124,138,0.3);
-      background: #fff;
+      box-shadow: 0 4px 20px rgba(0,85,170,0.5), 0 0 30px rgba(0,85,170,0.3);
+      background: #0066cc;
     }
     .wheel-center-btn:active {
       transform: translate(-50%, -50%) scale(0.95);
@@ -194,16 +194,36 @@
 
     .pointer {
       position: absolute;
-      top: -20px;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 38px;
+      z-index: 10;
+    }
+    .pointer::before {
+      content: '';
+      position: absolute;
+      top: 0;
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-top: 36px solid #fff;
-      filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35));
-      z-index: 10;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 32px solid #0055aa;
+      filter: drop-shadow(0 3px 8px rgba(0,85,170,0.5));
+    }
+    .pointer::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: #0055aa;
+      border-radius: 50%;
     }
 
     .spin-btn {
@@ -1191,9 +1211,8 @@
     function drawWheel(angle) {
       const canvas = document.getElementById('wheelCanvas');
       const dpr = window.devicePixelRatio || 1;
-      const size = 360; // taille logique
+      const size = 360;
 
-      // Redimensionner si nécessaire
       if (canvas.width !== size * dpr) {
         canvas.width = size * dpr;
         canvas.height = size * dpr;
@@ -1205,14 +1224,18 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
 
-      const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+      const cx = size / 2, cy = size / 2;
+      const outerR = size / 2 - 4;
+      const borderW = outerR * 0.08; // bordure épaisse ~5% du diamètre
+      const segR = outerR - borderW;  // rayon des segments
+      const hubR = outerR * 0.10;     // rayon du hub central
 
       const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
 
       // Cas : total nul → roue grise
       if (total <= 0) {
         ctx.fillStyle = '#ccc';
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, outerR, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#999';
         ctx.font = '600 16px "Segoe UI", Arial, sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1223,72 +1246,112 @@
       const a0 = angle !== undefined ? angle : currentAngle;
       let start = a0 - Math.PI / 2;
 
+      // ── Bordure extérieure bleu marine ──
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+      ctx.fillStyle = '#0055aa';
+      ctx.fill();
+
+      // ── Segments avec alternance de tons ──
+      const lightBlue1 = '#99ccff';
+      const lightBlue2 = '#66b3ff';
+
       entries.forEach((e, idx) => {
         const pctVal = parseFloat(e.pct) || 0;
 
-        // Segment à 0% → zone grise ultra-fine (marqueur visuel)
+        // Segment à 0% → zone ultra-fine
         if (pctVal <= 0) {
-          // Dessiner un mince trait gris pour montrer que la case existe
           ctx.beginPath();
           ctx.moveTo(cx, cy);
-          ctx.arc(cx, cy, r, start, start + 0.02);
+          ctx.arc(cx, cy, segR, start, start + 0.02);
           ctx.closePath();
-          ctx.fillStyle = '#ddd';
+          ctx.fillStyle = '#b0d4f1';
           ctx.fill();
           start += 0.02;
           return;
         }
 
         const slice = (pctVal / total) * Math.PI * 2;
+
+        // Segment — alternance de bleus clairs
         ctx.beginPath();
         ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, r, start, start + slice);
+        ctx.arc(cx, cy, segR, start, start + slice);
         ctx.closePath();
-        ctx.fillStyle = e.color;
+        ctx.fillStyle = idx % 2 === 0 ? lightBlue1 : lightBlue2;
         ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2.5;
+
+        // Ligne de séparation blanche
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
         // Texte dans le segment
         if (slice > 0.06) {
           const mid = start + slice / 2;
-          const tr = r * 0.62;
+          const tr = segR * 0.6;
           ctx.save();
           ctx.translate(cx + Math.cos(mid) * tr, cy + Math.sin(mid) * tr);
           ctx.rotate(mid + Math.PI / 2);
           const fs = slice > 0.3 ? 14 : slice > 0.15 ? 12 : 10;
           ctx.font = `600 ${fs}px "Segoe UI", Arial, sans-serif`;
-          ctx.fillStyle = '#fff';
+          ctx.fillStyle = '#003366';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          const maxW = r * 0.68;
+          const maxW = segR * 0.6;
           let txt = e.name;
           if (ctx.measureText(txt).width > maxW)
             txt = txt.substring(0, Math.floor(maxW / (fs * 0.6))) + '…';
-          ctx.shadowColor = 'rgba(0,0,0,0.35)';
-          ctx.shadowBlur = 4;
+          ctx.shadowColor = 'rgba(255,255,255,0.5)';
+          ctx.shadowBlur = 2;
           ctx.fillText(txt, 0, 0);
           ctx.restore();
         }
         start += slice;
       });
 
-      // Hub central
+      // ── Cercle intérieur (limite segments / hub) ──
       ctx.beginPath();
-      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
+      ctx.arc(cx, cy, hubR + 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#0055aa';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-      ctx.lineWidth = 1.5;
+
+      // ── Hub central ──
+      ctx.beginPath();
+      ctx.arc(cx, cy, hubR, 0, Math.PI * 2);
+      ctx.fillStyle = '#0055aa';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Icône centrale
-      ctx.font = '16px "Segoe UI Emoji", Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#0e7c8a';
-      ctx.fillText('🎲', cx, cy);
+      // ── Décoration vague (à gauche de la bordure) ──
+      const waveR = outerR * 0.09;
+      const waveX = cx - outerR * 0.72;
+      const waveY = cy - outerR * 0.72;
+      ctx.save();
+      ctx.translate(waveX, waveY);
+      ctx.fillStyle = '#0055aa';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(waveR * 0.8, -waveR, waveR * 1.5, -waveR * 0.3, waveR * 0.5, waveR * 0.5);
+      ctx.bezierCurveTo(waveR * 0.2, waveR * 0.8, -waveR * 0.3, waveR * 0.4, 0, 0);
+      ctx.fill();
+      ctx.restore();
+
+      // ── Décoration goutte (à droite de la bordure) ──
+      const dropX = cx + outerR * 0.72;
+      const dropY = cy - outerR * 0.65;
+      const dropR = outerR * 0.045;
+      ctx.save();
+      ctx.translate(dropX, dropY);
+      ctx.fillStyle = '#0055aa';
+      ctx.beginPath();
+      ctx.moveTo(0, -dropR * 1.8);
+      ctx.bezierCurveTo(dropR * 1.2, -dropR * 0.3, dropR * 1.2, dropR, 0, dropR);
+      ctx.bezierCurveTo(-dropR * 1.2, dropR, -dropR * 1.2, -dropR * 0.3, 0, -dropR * 1.8);
+      ctx.fill();
+      ctx.restore();
     }
 
     /* ═══════════════════════════════════════════
