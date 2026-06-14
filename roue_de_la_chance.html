@@ -8,10 +8,79 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Océan animé ── */
+    .ocean-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -2;
+      background: linear-gradient(180deg, #0a4f5c 0%, #0e7c8a 30%, #14a3b8 60%, #1bc5db 85%, #7ee8f5 100%);
+    }
+
+    .waves-container {
+      position: fixed;
+      bottom: 0; left: 0;
+      width: 100%; height: 220px;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .wave {
+      position: absolute;
+      bottom: 0;
+      width: 200%;
+      height: 100%;
+      border-radius: 50% 50% 0 0;
+      opacity: 0.5;
+    }
+
+    .wave-1 {
+      background: rgba(20, 163, 184, 0.45);
+      animation: waveMove1 7s ease-in-out infinite alternate;
+    }
+    .wave-2 {
+      background: rgba(27, 197, 219, 0.35);
+      animation: waveMove2 9s ease-in-out infinite alternate;
+      bottom: 10px;
+    }
+    .wave-3 {
+      background: rgba(126, 232, 245, 0.25);
+      animation: waveMove3 11s ease-in-out infinite alternate;
+      bottom: 20px;
+    }
+
+    @keyframes waveMove1 {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-25%); }
+    }
+    @keyframes waveMove2 {
+      0%   { transform: translateX(-10%); }
+      100% { transform: translateX(15%); }
+    }
+    @keyframes waveMove3 {
+      0%   { transform: translateX(-5%); }
+      100% { transform: translateX(-30%); }
+    }
+
+    /* ── Bulles animées ── */
+    .bubble {
+      position: fixed;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
+      z-index: -1;
+      animation: bubbleRise linear infinite;
+    }
+
+    @keyframes bubbleRise {
+      0%   { transform: translateY(0) scale(1); opacity: 0.6; }
+      50%  { opacity: 0.3; }
+      100% { transform: translateY(-110vh) scale(0.4); opacity: 0; }
+    }
+
+    /* ── Body ── */
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f4f4f8;
-      color: #1a1a1a;
+      color: #fff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -20,16 +89,17 @@
     }
 
     h1 {
-      font-size: 2rem;
+      font-size: 2.2rem;
       font-weight: 700;
       margin-bottom: 0.25rem;
       letter-spacing: -0.5px;
-      color: #1a1a1a;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
     .subtitle {
       font-size: 0.95rem;
-      color: #777;
+      color: rgba(255,255,255,0.75);
       margin-bottom: 2rem;
     }
 
@@ -60,7 +130,7 @@
     #wheelCanvas {
       display: block;
       border-radius: 50%;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 60px rgba(20,163,184,0.3);
     }
 
     .pointer {
@@ -72,8 +142,8 @@
       height: 0;
       border-left: 15px solid transparent;
       border-right: 15px solid transparent;
-      border-top: 36px solid #1a1a1a;
-      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
+      border-top: 36px solid #fff;
+      filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35));
       z-index: 10;
     }
 
@@ -83,17 +153,17 @@
       font-weight: 600;
       border-radius: 50px;
       border: none;
-      background: #534AB7;
+      background: linear-gradient(135deg, #0e7c8a, #14a3b8);
       color: #fff;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-      box-shadow: 0 4px 14px rgba(83,74,183,0.35);
+      box-shadow: 0 4px 18px rgba(14,124,138,0.5);
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .spin-btn:hover { background: #3C3489; box-shadow: 0 6px 18px rgba(83,74,183,0.45); }
+    .spin-btn:hover { background: linear-gradient(135deg, #0a5f6a, #0e7c8a); box-shadow: 0 6px 22px rgba(14,124,138,0.6); }
     .spin-btn:active { transform: scale(0.97); }
     .spin-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
@@ -101,31 +171,33 @@
       min-height: 48px;
       font-size: 18px;
       font-weight: 600;
-      color: #1a1a1a;
+      color: #0a4f5c;
       text-align: center;
       padding: 10px 28px;
       border-radius: 12px;
-      background: #fff;
-      border: 1.5px solid #e0e0e0;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(255,255,255,0.5);
       width: 360px;
       display: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     }
 
     /* ── Editor ── */
     .editor {
-      background: #fff;
-      border: 1px solid #e8e8e8;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.5);
       border-radius: 16px;
       padding: 1.5rem;
       width: 360px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     }
 
     .editor h3 {
       font-size: 15px;
       font-weight: 600;
-      color: #1a1a1a;
+      color: #0a4f5c;
       margin-bottom: 14px;
     }
 
@@ -153,7 +225,7 @@
     }
 
     .entries-list::-webkit-scrollbar { width: 4px; }
-    .entries-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+    .entries-list::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
 
     .entry-row {
       display: grid;
@@ -178,7 +250,7 @@
     .entry-row input[type=text]:focus,
     .entry-row input[type=number]:focus {
       outline: none;
-      border-color: #7F77DD;
+      border-color: #14a3b8;
       background: #fff;
     }
 
@@ -218,7 +290,7 @@
       border: 1.5px dashed #c8c8c8;
       border-radius: 8px;
       background: transparent;
-      color: #999;
+      color: #0a5f6a;
       cursor: pointer;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
       display: flex;
@@ -227,7 +299,7 @@
       gap: 6px;
     }
 
-    .add-btn:hover { background: #f5f4ff; color: #534AB7; border-color: #b0abee; }
+    .add-btn:hover { background: #e8f8fa; color: #0e7c8a; border-color: #14a3b8; }
 
     .total-row {
       font-size: 12px;
@@ -239,17 +311,66 @@
     }
 
     .total-row .total-val { color: #1a1a1a; font-weight: 600; }
-    .total-warn { color: #e24b4a; display: none; }
+    .total-warn { color: #e24b4a; display: none; font-weight: 600; }
+
+    /* ── History ── */
+    .history-panel {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 16px;
+      padding: 1.25rem;
+      width: 100%;
+      max-width: 1000px;
+      margin-top: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+
+    .history-panel h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #0a4f5c;
+      margin-bottom: 10px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .history-chip {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: #0e7c8a;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+
+    .history-empty {
+      color: #aaa;
+      font-size: 13px;
+    }
 
     @media (max-width: 600px) {
       .wheel-wrapper { width: 290px; height: 290px; }
-      #wheelCanvas { width: 290px; height: 290px; }
+      #wheelCanvas { width: 290px !important; height: 290px !important; }
       .result-box { width: 290px; }
       .editor { width: 100%; }
     }
   </style>
 </head>
 <body>
+
+  <!-- Fond océan animé -->
+  <div class="ocean-bg"></div>
+  <div class="waves-container">
+    <div class="wave wave-1"></div>
+    <div class="wave wave-2"></div>
+    <div class="wave wave-3"></div>
+  </div>
 
   <h1>🎡 Roue de la Chance</h1>
   <p class="subtitle">Personnalisez les cases, les probabilités et tournez !</p>
@@ -259,12 +380,12 @@
     <div class="wheel-area">
       <div class="wheel-wrapper">
         <div class="pointer"></div>
-        <canvas id="wheelCanvas" width="360" height="360"></canvas>
+        <canvas id="wheelCanvas" width="360" height="360" role="img" aria-label="Roue de la chance"></canvas>
       </div>
-      <button class="spin-btn" id="spinBtn" onclick="spin()">
+      <button class="spin-btn" id="spinBtn" aria-label="Lancer la roue">
         <i class="ti ti-player-play"></i> Tourner !
       </button>
-      <div class="result-box" id="resultBox"></div>
+      <div class="result-box" id="resultBox" role="status" aria-live="polite"></div>
     </div>
 
     <div class="editor">
@@ -275,93 +396,271 @@
         <span>Couleur</span>
         <span></span>
       </div>
-      <div class="entries-list" id="entriesList"></div>
-      <button class="add-btn" onclick="addEntry()">
+      <div class="entries-list" id="entriesList" role="list"></div>
+      <button class="add-btn" id="addBtn" aria-label="Ajouter une case">
         <i class="ti ti-plus"></i> Ajouter une case
       </button>
       <div class="total-row">
         Total : <span class="total-val" id="totalPct">0</span>%
-        <span class="total-warn" id="totalWarn"> — doit être 100%</span>
+        <span class="total-warn" id="totalWarn"> — doit être exactement 100%</span>
       </div>
     </div>
 
   </div>
 
+  <!-- Historique des résultats -->
+  <div class="history-panel">
+    <h3>📋 Historique des tirages</h3>
+    <div class="history-list" id="historyList">
+      <span class="history-empty">Aucun tirage pour le moment…</span>
+    </div>
+  </div>
+
   <script>
+    /* ═══════════════════════════════════════════
+       Bulles d'océan (générées dynamiquement)
+    ═══════════════════════════════════════════ */
+    function createBubbles() {
+      const count = 18;
+      for (let i = 0; i < count; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = 6 + Math.random() * 30;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.bottom = '-' + size + 'px';
+        bubble.style.animationDuration = (8 + Math.random() * 14) + 's';
+        bubble.style.animationDelay = (Math.random() * 10) + 's';
+        document.body.appendChild(bubble);
+      }
+    }
+    createBubbles();
+
+    /* ═══════════════════════════════════════════
+       Constantes & état
+    ═══════════════════════════════════════════ */
     const COLORS = [
       '#7F77DD','#1D9E75','#D85A30','#378ADD','#D4537E',
       '#639922','#BA7517','#E24B4A','#534AB7','#0F6E56',
       '#993C1D','#185FA5','#993356','#3B6D11','#854F0B'
     ];
 
-    let entries = [
+    const STORAGE_KEY = 'roue_de_la_chance_entries';
+    const HISTORY_KEY = 'roue_de_la_chance_history';
+
+    const DEFAULT_ENTRIES = [
       { name: 'Case 1', pct: 25, color: COLORS[0] },
       { name: 'Case 2', pct: 25, color: COLORS[1] },
       { name: 'Case 3', pct: 25, color: COLORS[2] },
       { name: 'Case 4', pct: 25, color: COLORS[3] },
     ];
 
+    let entries = loadEntries();
+    let history = loadHistory();
     let spinning = false, currentAngle = 0;
 
+    /* ═══════════════════════════════════════════
+       Persistance (localStorage)
+    ═══════════════════════════════════════════ */
+    function loadEntries() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch(e) { /* ignore */ }
+      return JSON.parse(JSON.stringify(DEFAULT_ENTRIES));
+    }
+
+    function saveEntries() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch(e) { /* ignore */ }
+    }
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch(e) { /* ignore */ }
+      return [];
+    }
+
+    function saveHistory() {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 20))); } catch(e) { /* ignore */ }
+    }
+
+    /* ═══════════════════════════════════════════
+       Utilitaires
+    ═══════════════════════════════════════════ */
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    /* ═══════════════════════════════════════════
+       Gestion des entrées (CRUD)
+    ═══════════════════════════════════════════ */
     function addEntry() {
       entries.push({ name: 'Nouvelle case', pct: 0, color: COLORS[entries.length % COLORS.length] });
+      saveEntries();
       render();
     }
 
     function removeEntry(i) {
       if (entries.length <= 1) return;
       entries.splice(i, 1);
+      saveEntries();
       render();
     }
 
+    /* ═══════════════════════════════════════════
+       Rendu de l'éditeur (SANS innerHTML pour les inputs)
+    ═══════════════════════════════════════════ */
     function render() {
       const list = document.getElementById('entriesList');
       list.innerHTML = '';
+
       entries.forEach((e, i) => {
         const row = document.createElement('div');
         row.className = 'entry-row';
-        row.innerHTML = `
-          <input type="text" value="${e.name}" placeholder="Nom"
-            oninput="entries[${i}].name=this.value; drawWheel()">
-          <input type="number" min="0" max="100" step="0.1" value="${e.pct}"
-            oninput="entries[${i}].pct=parseFloat(this.value)||0; updateTotal(); drawWheel()">
-          <input type="color" value="${e.color}"
-            oninput="entries[${i}].color=this.value; drawWheel()">
-          <button class="del-btn" onclick="removeEntry(${i})" title="Supprimer">
-            <i class="ti ti-trash"></i>
-          </button>`;
+        row.setAttribute('role', 'listitem');
+
+        // Input nom
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = e.name;
+        nameInput.placeholder = 'Nom';
+        nameInput.setAttribute('aria-label', 'Nom de la case ' + (i + 1));
+        nameInput.addEventListener('input', function() {
+          entries[i].name = this.value;
+          saveEntries();
+          drawWheel();
+        });
+
+        // Input probabilité
+        const pctInput = document.createElement('input');
+        pctInput.type = 'number';
+        pctInput.min = '0';
+        pctInput.max = '100';
+        pctInput.step = '0.1';
+        pctInput.value = e.pct;
+        pctInput.setAttribute('aria-label', 'Probabilité de la case ' + (i + 1));
+        pctInput.addEventListener('input', function() {
+          entries[i].pct = parseFloat(this.value) || 0;
+          updateTotal();
+          saveEntries();
+          drawWheel();
+        });
+
+        // Input couleur
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = e.color;
+        colorInput.setAttribute('aria-label', 'Couleur de la case ' + (i + 1));
+        colorInput.addEventListener('input', function() {
+          entries[i].color = this.value;
+          saveEntries();
+          drawWheel();
+        });
+
+        // Bouton supprimer
+        const delBtn = document.createElement('button');
+        delBtn.className = 'del-btn';
+        delBtn.title = 'Supprimer';
+        delBtn.setAttribute('aria-label', 'Supprimer la case ' + (i + 1));
+        delBtn.innerHTML = '<i class="ti ti-trash"></i>';
+        delBtn.addEventListener('click', function() { removeEntry(i); });
+
+        row.appendChild(nameInput);
+        row.appendChild(pctInput);
+        row.appendChild(colorInput);
+        row.appendChild(delBtn);
         list.appendChild(row);
       });
+
       updateTotal();
       drawWheel();
     }
 
+    /* ═══════════════════════════════════════════
+       Total des probabilités (tolérance stricte)
+    ═══════════════════════════════════════════ */
     function updateTotal() {
       const t = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
       document.getElementById('totalPct').textContent = Math.round(t * 10) / 10;
       document.getElementById('totalWarn').style.display = Math.abs(t - 100) > 0.01 ? 'inline' : 'none';
     }
 
+    /* ═══════════════════════════════════════════
+       Dessin de la roue (Canvas avec support Retina)
+    ═══════════════════════════════════════════ */
+    function setupCanvas() {
+      const canvas = document.getElementById('wheelCanvas');
+      const dpr = window.devicePixelRatio || 1;
+      const displaySize = 360;
+      canvas.width = displaySize * dpr;
+      canvas.height = displaySize * dpr;
+      canvas.style.width = displaySize + 'px';
+      canvas.style.height = displaySize + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return { ctx, size: displaySize };
+    }
+
     function drawWheel(angle) {
       const canvas = document.getElementById('wheelCanvas');
+      const dpr = window.devicePixelRatio || 1;
+      const size = 360; // taille logique
+
+      // Redimensionner si nécessaire
+      if (canvas.width !== size * dpr) {
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
+      }
+
       const ctx = canvas.getContext('2d');
-      const size = canvas.width;
-      const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
 
+      const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+
       const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
+
+      // Cas : total nul → roue grise
       if (total <= 0) {
-        ctx.fillStyle = '#ddd';
+        ctx.fillStyle = '#ccc';
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#999';
+        ctx.font = '600 16px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Aucune donnée', cx, cy);
         return;
       }
 
       const a0 = angle !== undefined ? angle : currentAngle;
       let start = a0 - Math.PI / 2;
-      const valid = entries.filter(e => (parseFloat(e.pct) || 0) > 0);
 
-      valid.forEach(e => {
-        const slice = (parseFloat(e.pct) / total) * Math.PI * 2;
+      entries.forEach((e, idx) => {
+        const pctVal = parseFloat(e.pct) || 0;
+
+        // Segment à 0% → zone grise ultra-fine (marqueur visuel)
+        if (pctVal <= 0) {
+          // Dessiner un mince trait gris pour montrer que la case existe
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, start, start + 0.02);
+          ctx.closePath();
+          ctx.fillStyle = '#ddd';
+          ctx.fill();
+          start += 0.02;
+          return;
+        }
+
+        const slice = (pctVal / total) * Math.PI * 2;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, r, start, start + slice);
@@ -372,6 +671,7 @@
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
+        // Texte dans le segment
         if (slice > 0.06) {
           const mid = start + slice / 2;
           const tr = r * 0.62;
@@ -379,7 +679,7 @@
           ctx.translate(cx + Math.cos(mid) * tr, cy + Math.sin(mid) * tr);
           ctx.rotate(mid + Math.PI / 2);
           const fs = slice > 0.3 ? 14 : slice > 0.15 ? 12 : 10;
-          ctx.font = `600 ${fs}px 'Segoe UI', Arial, sans-serif`;
+          ctx.font = `600 ${fs}px "Segoe UI", Arial, sans-serif`;
           ctx.fillStyle = '#fff';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -387,48 +687,79 @@
           let txt = e.name;
           if (ctx.measureText(txt).width > maxW)
             txt = txt.substring(0, Math.floor(maxW / (fs * 0.6))) + '…';
-          ctx.shadowColor = 'rgba(0,0,0,0.25)';
-          ctx.shadowBlur = 3;
+          ctx.shadowColor = 'rgba(0,0,0,0.35)';
+          ctx.shadowBlur = 4;
           ctx.fillText(txt, 0, 0);
           ctx.restore();
         }
         start += slice;
       });
 
-      // Center hub
+      // Hub central
       ctx.beginPath();
-      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
       ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      // Icône centrale
+      ctx.font = '16px "Segoe UI Emoji", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#0e7c8a';
+      ctx.fillText('🎲', cx, cy);
     }
 
+    /* ═══════════════════════════════════════════
+       Détermination du gagnant
+    ═══════════════════════════════════════════ */
     function getWinner(angle) {
       const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
       if (total <= 0) return null;
       let norm = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
       let pointer = (Math.PI * 2 - norm + Math.PI * 2 * 1.5) % (Math.PI * 2);
       let start = 0;
-      const valid = entries.filter(e => (parseFloat(e.pct) || 0) > 0);
-      for (const e of valid) {
-        const slice = (parseFloat(e.pct) / total) * Math.PI * 2;
+      // Parcourir toutes les entrées (y compris 0%) mais ajuster les angles
+      for (const e of entries) {
+        const pctVal = parseFloat(e.pct) || 0;
+        if (pctVal <= 0) {
+          start += 0.02; // même décalage que dans drawWheel
+          continue;
+        }
+        const slice = (pctVal / total) * Math.PI * 2;
         if (pointer >= start && pointer < start + slice) return e;
         start += slice;
       }
-      return valid[0];
+      // Fallback : première entrée valide
+      return entries.find(e => (parseFloat(e.pct) || 0) > 0) || null;
     }
 
+    /* ═══════════════════════════════════════════
+       Animation de rotation
+    ═══════════════════════════════════════════ */
     function spin() {
       if (spinning) return;
       const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
-      if (Math.abs(total - 100) > 0.5) {
+
+      // Vérification stricte du total
+      if (Math.abs(total - 100) > 0.01) {
         const box = document.getElementById('resultBox');
         box.style.display = 'block';
-        box.innerHTML = '⚠️ Les probabilités doivent totaliser 100%';
+        box.innerHTML = '<span style="color:#e24b4a;">⚠️ Les probabilités doivent totaliser exactement 100% (actuel : ' + Math.round(total * 10) / 10 + '%)</span>';
         return;
       }
+
+      // Vérifier qu'il y a au moins 2 cases avec pct > 0
+      const validEntries = entries.filter(e => (parseFloat(e.pct) || 0) > 0);
+      if (validEntries.length < 2) {
+        const box = document.getElementById('resultBox');
+        box.style.display = 'block';
+        box.innerHTML = '<span style="color:#e24b4a;">⚠️ Il faut au moins 2 cases avec une probabilité > 0</span>';
+        return;
+      }
+
       spinning = true;
       document.getElementById('spinBtn').disabled = true;
       document.getElementById('resultBox').style.display = 'none';
@@ -453,15 +784,65 @@
           const winner = getWinner(currentAngle);
           const box = document.getElementById('resultBox');
           box.style.display = 'block';
-          box.innerHTML = winner
-            ? `🎉 <strong style="color:${winner.color}">${winner.name}</strong>`
-            : '';
+          if (winner) {
+            const safeName = escapeHTML(winner.name);
+            box.innerHTML = '🎉 <strong style="color:' + winner.color + '">' + safeName + '</strong>';
+            addToHistory(winner);
+          } else {
+            box.textContent = '';
+          }
         }
       }
       requestAnimationFrame(frame);
     }
 
+    /* ═══════════════════════════════════════════
+       Historique des tirages
+    ═══════════════════════════════════════════ */
+    function addToHistory(winner) {
+      const now = new Date();
+      const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      history.unshift({ name: winner.name, color: winner.color, time: timeStr });
+      if (history.length > 20) history = history.slice(0, 20);
+      saveHistory();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      if (history.length === 0) {
+        list.innerHTML = '<span class="history-empty">Aucun tirage pour le moment…</span>';
+        return;
+      }
+      list.innerHTML = '';
+      history.forEach(h => {
+        const chip = document.createElement('span');
+        chip.className = 'history-chip';
+        chip.style.background = h.color;
+        chip.textContent = h.time + ' — ' + h.name;
+        list.appendChild(chip);
+      });
+    }
+
+    /* ═══════════════════════════════════════════
+       Événements
+    ═══════════════════════════════════════════ */
+    document.getElementById('spinBtn').addEventListener('click', spin);
+    document.getElementById('addBtn').addEventListener('click', addEntry);
+
+    // Support clavier : Espace / Entrée pour spinner
+    document.addEventListener('keydown', function(e) {
+      if (e.code === 'Space' && document.activeElement === document.getElementById('spinBtn')) {
+        e.preventDefault();
+        spin();
+      }
+    });
+
+    /* ═══════════════════════════════════════════
+       Initialisation
+    ═══════════════════════════════════════════ */
     render();
+    renderHistory();
   </script>
 </body>
 </html>
