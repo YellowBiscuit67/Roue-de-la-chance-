@@ -664,13 +664,15 @@
     ytScript.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(ytScript);
 
+    let autoStarted = false;
+
     window.onYouTubeIframeAPIReady = function() {
       ytPlayer = new YT.Player('ytPlayer', {
         height: '1',
         width: '1',
         videoId: 'tXfFJ2zyeYU', // distant ocean - alyzea
         playerVars: {
-          autoplay: 0,
+          autoplay: 1,
           controls: 0,
           disablekb: 1,
           fs: 0,
@@ -683,7 +685,9 @@
         events: {
           onReady: function(event) {
             ytReady = true;
-            ytPlayer.setVolume(currentVolume);
+            // Démarrer en muet pour contourner le blocage autoplay des navigateurs
+            ytPlayer.mute();
+            ytPlayer.playVideo();
             document.getElementById('musicPlayBtn').disabled = false;
           },
           onStateChange: function(event) {
@@ -698,6 +702,15 @@
         }
       });
     };
+
+    // Activer le son au premier clic (les navigateurs bloquent l'autoplay avec son)
+    document.addEventListener('click', function enableAudioOnFirstClick() {
+      if (autoStarted || !ytReady || !ytPlayer) return;
+      autoStarted = true;
+      ytPlayer.unMute();
+      ytPlayer.setVolume(currentVolume);
+      document.removeEventListener('click', enableAudioOnFirstClick);
+    }, { once: false });
 
     /* ── Barre de musique ── */
     let musicBarVisible = false;
