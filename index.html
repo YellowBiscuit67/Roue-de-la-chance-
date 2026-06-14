@@ -354,27 +354,93 @@
       font-size: 13px;
     }
 
-    /* ── Spotify player ── */
-    .spotify-player {
+    /* ── YouTube music player ── */
+    .music-player-bar {
       position: fixed;
-      bottom: 70px;
+      bottom: 0;
       left: 0;
       width: 100%;
-      z-index: 100;
+      z-index: 99;
       display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      background: rgba(5, 40, 50, 0.85);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.4s ease;
+    }
+    .music-player-bar.hidden {
+      transform: translateY(100%);
+    }
+    .music-player-bar .track-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+    .music-player-bar .track-cover {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0e7c8a, #1bc5db);
+      display: flex;
+      align-items: center;
       justify-content: center;
-      padding: 12px 16px 16px;
-      background: linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 100%);
-      transition: transform 0.4s ease, opacity 0.3s ease;
+      font-size: 20px;
+      flex-shrink: 0;
     }
-    .spotify-player.hidden {
-      transform: translateY(200%);
-      opacity: 0;
+    .music-player-bar .track-text {
+      min-width: 0;
+    }
+    .music-player-bar .track-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .music-player-bar .track-artist {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+    .music-player-bar .play-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: #1ed760;
+      color: #000;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .music-player-bar .play-btn:hover { background: #1fdf64; transform: scale(1.08); }
+    .music-player-bar .play-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .music-player-bar .spotify-link {
+      color: #1ed760;
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .music-player-bar .spotify-link:hover { opacity: 0.7; }
+
+    #ytPlayerContainer {
+      position: fixed;
+      bottom: -300px;
+      left: -300px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
       pointer-events: none;
-    }
-    .spotify-player iframe {
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
     }
 
     /* ── Audio panel ── */
@@ -501,30 +567,39 @@
     <div class="wave wave-3"></div>
   </div>
 
-  <!-- Lecteur Spotify -->
-  <div class="spotify-player hidden" id="spotifyPlayer">
-    <iframe 
-      src="https://open.spotify.com/embed/track/1e2GFDc9UFo0sdLIJ0KQMd?theme=0" 
-      width="340" 
-      height="80" 
-      frameBorder="0" 
-      allowfullscreen="" 
-      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-      loading="lazy">
-    </iframe>
+  <!-- YouTube player (caché, sert de source audio) -->
+  <div id="ytPlayerContainer">
+    <div id="ytPlayer"></div>
+  </div>
+
+  <!-- Barre de musique en bas -->
+  <div class="music-player-bar hidden" id="musicPlayerBar">
+    <div class="track-info">
+      <div class="track-cover">🌊</div>
+      <div class="track-text">
+        <div class="track-title">distant ocean</div>
+        <div class="track-artist">alyzea</div>
+      </div>
+    </div>
+    <button class="play-btn" id="musicPlayBtn" disabled aria-label="Lecture / Pause">
+      <i class="ti ti-player-play" id="musicPlayIcon"></i>
+    </button>
+    <a class="spotify-link" href="https://open.spotify.com/track/1e2GFDc9UFo0sdLIJ0KQMd" target="_blank" rel="noopener" title="Écouter sur Spotify">
+      <i class="ti ti-brand-spotify"></i> Spotify
+    </a>
   </div>
 
   <!-- Panneau audio -->
   <div class="audio-panel" id="audioPanel">
-    <!-- Bouton Spotify -->
-    <button class="panel-btn" id="spotifyToggle" aria-label="Lecteur Spotify" title="distant ocean — alyzea">
-      <i class="ti ti-brand-spotify"></i>
+    <!-- Bouton musique -->
+    <button class="panel-btn" id="musicToggle" aria-label="Lecteur musique" title="distant ocean — alyzea">
+      <i class="ti ti-music"></i>
     </button>
     <div class="divider"></div>
     <!-- Volume -->
     <div class="volume-group">
       <i class="ti ti-volume volume-icon" id="volumeIcon" title="Muet / Activer"></i>
-      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50" aria-label="Volume de l'ambiance">
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50" aria-label="Volume">
       <span class="volume-pct" id="volumePct">50%</span>
     </div>
   </div>
@@ -575,51 +650,113 @@
 
   <script>
     /* ═══════════════════════════════════════════
-       Son d'océan procédural (Web Audio API)
+       YouTube IFrame API — distant ocean (alyzea)
+       Volume contrôlé par le slider !
     ═══════════════════════════════════════════ */
+    let ytPlayer = null;
+    let ytReady = false;
+    let isPlaying = false;
+    let currentVolume = 50;
+    let isMuted = false;
+
+    // Charger l'API YouTube
+    const ytScript = document.createElement('script');
+    ytScript.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(ytScript);
+
+    window.onYouTubeIframeAPIReady = function() {
+      ytPlayer = new YT.Player('ytPlayer', {
+        height: '1',
+        width: '1',
+        videoId: 'tXfFJ2zyeYU', // distant ocean - alyzea
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+          loop: 1,
+          playlist: 'tXfFJ2zyeYU' // nécessaire pour le loop
+        },
+        events: {
+          onReady: function(event) {
+            ytReady = true;
+            ytPlayer.setVolume(currentVolume);
+            document.getElementById('musicPlayBtn').disabled = false;
+          },
+          onStateChange: function(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+              isPlaying = true;
+              document.getElementById('musicPlayIcon').className = 'ti ti-player-pause';
+            } else {
+              isPlaying = false;
+              document.getElementById('musicPlayIcon').className = 'ti ti-player-play';
+            }
+          }
+        }
+      });
+    };
+
+    /* ── Barre de musique ── */
+    let musicBarVisible = false;
+
+    document.getElementById('musicToggle').addEventListener('click', function() {
+      musicBarVisible = !musicBarVisible;
+      const bar = document.getElementById('musicPlayerBar');
+      const btn = document.getElementById('musicToggle');
+
+      if (musicBarVisible) {
+        bar.classList.remove('hidden');
+        btn.classList.add('active');
+      } else {
+        bar.classList.add('hidden');
+        btn.classList.remove('active');
+      }
+    });
+
+    // Play / Pause
+    document.getElementById('musicPlayBtn').addEventListener('click', function() {
+      if (!ytReady || !ytPlayer) return;
+
+      if (isPlaying) {
+        ytPlayer.pauseVideo();
+      } else {
+        ytPlayer.playVideo();
+      }
+    });
+
+    /* ── Volume : contrôle la musique YouTube + l'ambiance océan ── */
     let oceanAudioCtx = null;
     let oceanGain = null;
-    let oceanMuted = false;
-    let oceanVolume = 0.5;
 
     function initOceanAudio() {
       if (oceanAudioCtx) return;
       oceanAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
       oceanGain = oceanAudioCtx.createGain();
-      oceanGain.gain.value = oceanMuted ? 0 : oceanVolume * 0.5;
+      oceanGain.gain.value = currentVolume / 200; // volume plus faible que la musique
       oceanGain.connect(oceanAudioCtx.destination);
 
       const bufferSize = oceanAudioCtx.sampleRate * 4;
-
-      // ── Couche 1 : vagues profondes ──
       const noiseBuffer = oceanAudioCtx.createBuffer(2, bufferSize, oceanAudioCtx.sampleRate);
       for (let ch = 0; ch < 2; ch++) {
         const data = noiseBuffer.getChannelData(ch);
         for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
       }
       const noiseSource = oceanAudioCtx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      noiseSource.loop = true;
-
+      noiseSource.buffer = noiseBuffer; noiseSource.loop = true;
       const lowPass = oceanAudioCtx.createBiquadFilter();
       lowPass.type = 'lowpass'; lowPass.frequency.value = 400; lowPass.Q.value = 0.7;
-
       const bandPass = oceanAudioCtx.createBiquadFilter();
       bandPass.type = 'bandpass'; bandPass.frequency.value = 250; bandPass.Q.value = 0.5;
-
-      const lfo = oceanAudioCtx.createOscillator();
-      lfo.type = 'sine'; lfo.frequency.value = 0.08;
+      const lfo = oceanAudioCtx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.08;
       const lfoGain = oceanAudioCtx.createGain(); lfoGain.gain.value = 150;
       lfo.connect(lfoGain); lfoGain.connect(lowPass.frequency); lfo.start();
-
-      const lfo2 = oceanAudioCtx.createOscillator();
-      lfo2.type = 'sine'; lfo2.frequency.value = 0.12;
-      const lfo2Gain = oceanAudioCtx.createGain(); lfo2Gain.gain.value = 0.12;
-      const baseVolumeGain = oceanAudioCtx.createGain(); baseVolumeGain.gain.value = 0.22;
-      lfo2.connect(lfo2Gain); lfo2Gain.connect(baseVolumeGain.gain); lfo2.start();
-
-      // ── Couche 2 : écume / clapotis ──
+      const lfo2 = oceanAudioCtx.createOscillator(); lfo2.type = 'sine'; lfo2.frequency.value = 0.12;
+      const lfo2Gain = oceanAudioCtx.createGain(); lfo2Gain.gain.value = 0.08;
+      const baseVol = oceanAudioCtx.createGain(); baseVol.gain.value = 0.18;
+      lfo2.connect(lfo2Gain); lfo2Gain.connect(baseVol.gain); lfo2.start();
       const noiseBuffer2 = oceanAudioCtx.createBuffer(2, bufferSize, oceanAudioCtx.sampleRate);
       for (let ch = 0; ch < 2; ch++) {
         const data = noiseBuffer2.getChannelData(ch);
@@ -627,90 +764,74 @@
       }
       const noiseSource2 = oceanAudioCtx.createBufferSource();
       noiseSource2.buffer = noiseBuffer2; noiseSource2.loop = true;
-
       const highPass = oceanAudioCtx.createBiquadFilter();
       highPass.type = 'highpass'; highPass.frequency.value = 800; highPass.Q.value = 0.3;
-      const foamGain = oceanAudioCtx.createGain(); foamGain.gain.value = 0.05;
-
-      const lfo3 = oceanAudioCtx.createOscillator();
-      lfo3.type = 'sine'; lfo3.frequency.value = 0.2;
-      const lfo3Gain = oceanAudioCtx.createGain(); lfo3Gain.gain.value = 0.04;
+      const foamGain = oceanAudioCtx.createGain(); foamGain.gain.value = 0.04;
+      const lfo3 = oceanAudioCtx.createOscillator(); lfo3.type = 'sine'; lfo3.frequency.value = 0.2;
+      const lfo3Gain = oceanAudioCtx.createGain(); lfo3Gain.gain.value = 0.03;
       lfo3.connect(lfo3Gain); lfo3Gain.connect(foamGain.gain); lfo3.start();
 
-      // Chaînage
       noiseSource.connect(lowPass); lowPass.connect(bandPass);
-      bandPass.connect(baseVolumeGain); baseVolumeGain.connect(oceanGain);
+      bandPass.connect(baseVol); baseVol.connect(oceanGain);
       noiseSource2.connect(highPass); highPass.connect(foamGain); foamGain.connect(oceanGain);
-
       noiseSource.start(); noiseSource2.start();
     }
 
-    function setOceanVolume(val) {
-      oceanVolume = val;
-      if (oceanGain && oceanAudioCtx && !oceanMuted) {
-        oceanGain.gain.linearRampToValueAtTime(val * 0.5, oceanAudioCtx.currentTime + 0.1);
+    function setAllVolume(val) {
+      currentVolume = val;
+      // YouTube
+      if (ytReady && ytPlayer) {
+        ytPlayer.setVolume(val);
+      }
+      // Ambiance océan
+      if (oceanGain && oceanAudioCtx) {
+        oceanGain.gain.linearRampToValueAtTime(val / 200, oceanAudioCtx.currentTime + 0.1);
       }
     }
 
-    function toggleOceanMute() {
-      if (!oceanAudioCtx) initOceanAudio();
-      if (oceanAudioCtx.state === 'suspended') oceanAudioCtx.resume();
-
-      oceanMuted = !oceanMuted;
+    function toggleMute() {
+      isMuted = !isMuted;
       const icon = document.getElementById('volumeIcon');
       const slider = document.getElementById('volumeSlider');
 
-      if (oceanMuted) {
-        oceanGain.gain.linearRampToValueAtTime(0, oceanAudioCtx.currentTime + 0.3);
+      if (isMuted) {
+        if (ytReady && ytPlayer) ytPlayer.setVolume(0);
+        if (oceanGain && oceanAudioCtx) oceanGain.gain.linearRampToValueAtTime(0, oceanAudioCtx.currentTime + 0.2);
         icon.className = 'ti ti-volume-off volume-icon';
         slider.value = 0;
         document.getElementById('volumePct').textContent = '0%';
       } else {
-        const restore = oceanVolume > 0 ? oceanVolume : 0.5;
-        oceanVolume = restore;
-        oceanGain.gain.linearRampToValueAtTime(restore * 0.5, oceanAudioCtx.currentTime + 0.3);
+        const restore = currentVolume > 0 ? currentVolume : 50;
+        currentVolume = restore;
+        if (ytReady && ytPlayer) ytPlayer.setVolume(restore);
+        if (oceanGain && oceanAudioCtx) oceanGain.gain.linearRampToValueAtTime(restore / 200, oceanAudioCtx.currentTime + 0.2);
+        if (!oceanAudioCtx) initOceanAudio();
+        if (oceanAudioCtx && oceanAudioCtx.state === 'suspended') oceanAudioCtx.resume();
         icon.className = 'ti ti-volume volume-icon';
-        slider.value = Math.round(restore * 100);
-        document.getElementById('volumePct').textContent = Math.round(restore * 100) + '%';
+        slider.value = restore;
+        document.getElementById('volumePct').textContent = restore + '%';
       }
     }
 
-    // Slider de volume
+    // Slider de volume → contrôle YouTube + ambiance
     document.getElementById('volumeSlider').addEventListener('input', function() {
-      if (!oceanAudioCtx) initOceanAudio();
-      if (oceanAudioCtx.state === 'suspended') oceanAudioCtx.resume();
+      const val = parseInt(this.value);
+      isMuted = val === 0;
+      currentVolume = val;
 
-      const val = parseInt(this.value) / 100;
-      oceanMuted = val === 0;
       const icon = document.getElementById('volumeIcon');
       icon.className = val === 0 ? 'ti ti-volume-off volume-icon' : 'ti ti-volume volume-icon';
-      document.getElementById('volumePct').textContent = Math.round(val * 100) + '%';
-      setOceanVolume(val);
+      document.getElementById('volumePct').textContent = val + '%';
+
+      // Initialiser l'ambiance au premier usage
+      if (!oceanAudioCtx) initOceanAudio();
+      if (oceanAudioCtx && oceanAudioCtx.state === 'suspended') oceanAudioCtx.resume();
+
+      setAllVolume(val);
     });
 
     // Clic sur l'icône volume → mute/unmute
-    document.getElementById('volumeIcon').addEventListener('click', toggleOceanMute);
-
-    /* ═══════════════════════════════════════════
-       Lecteur Spotify (distant ocean — alyzea)
-    ═══════════════════════════════════════════ */
-    let spotifyVisible = false;
-
-    function toggleSpotifyPlayer() {
-      spotifyVisible = !spotifyVisible;
-      const player = document.getElementById('spotifyPlayer');
-      const btn = document.getElementById('spotifyToggle');
-
-      if (spotifyVisible) {
-        player.classList.remove('hidden');
-        btn.classList.add('active');
-      } else {
-        player.classList.add('hidden');
-        btn.classList.remove('active');
-      }
-    }
-
-    document.getElementById('spotifyToggle').addEventListener('click', toggleSpotifyPlayer);
+    document.getElementById('volumeIcon').addEventListener('click', toggleMute);
 
     /* ═══════════════════════════════════════════
        Bulles d'océan (générées dynamiquement)
