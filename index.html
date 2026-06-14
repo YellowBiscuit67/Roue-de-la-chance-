@@ -1361,7 +1361,7 @@
       const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
       if (total <= 0) return null;
       let norm = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-      let pointer = (Math.PI * 2 - norm + Math.PI * 2 * 1.5) % (Math.PI * 2);
+      let pointer = (Math.PI * 2 - norm + Math.PI * 2) % (Math.PI * 2);
       let start = 0;
       // Parcourir toutes les entrées (y compris 0%) mais ajuster les angles
       for (const e of entries) {
