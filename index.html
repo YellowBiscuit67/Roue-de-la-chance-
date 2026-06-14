@@ -357,7 +357,7 @@
     /* ── Spotify player ── */
     .spotify-player {
       position: fixed;
-      bottom: 0;
+      bottom: 70px;
       left: 0;
       width: 100%;
       z-index: 100;
@@ -368,7 +368,7 @@
       transition: transform 0.4s ease, opacity 0.3s ease;
     }
     .spotify-player.hidden {
-      transform: translateY(100%);
+      transform: translateY(200%);
       opacity: 0;
       pointer-events: none;
     }
@@ -377,28 +377,111 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.3);
     }
 
-    /* ── Audio toggle button ── */
-    .audio-toggle {
+    /* ── Audio panel ── */
+    .audio-panel {
       position: fixed;
       top: 16px;
       right: 16px;
       z-index: 100;
-      width: 44px;
-      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(10, 60, 70, 0.7);
+      backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 28px;
+      padding: 8px 16px 8px 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      transition: all 0.3s ease;
+    }
+
+    .audio-panel .panel-btn {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.4);
-      background: rgba(14,124,138,0.6);
-      backdrop-filter: blur(8px);
+      border: none;
+      background: rgba(255,255,255,0.12);
       color: #fff;
-      font-size: 20px;
+      font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s, transform 0.15s, border-color 0.2s;
+      transition: background 0.2s, transform 0.15s;
+      flex-shrink: 0;
     }
-    .audio-toggle:hover { background: rgba(14,124,138,0.85); border-color: rgba(255,255,255,0.7); transform: scale(1.08); }
-    .audio-toggle.active { background: rgba(30,215,96,0.6); border-color: rgba(30,215,96,0.6); }
+    .audio-panel .panel-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.08); }
+    .audio-panel .panel-btn.active { background: rgba(30,215,96,0.5); }
+
+    .audio-panel .divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    .audio-panel .volume-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .audio-panel .volume-icon {
+      color: rgba(255,255,255,0.7);
+      font-size: 16px;
+      cursor: pointer;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .audio-panel .volume-icon:hover { color: #fff; }
+
+    .audio-panel .volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.2);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .audio-panel .volume-slider:hover { background: rgba(255,255,255,0.3); }
+    .audio-panel .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #1ed760;
+      border: 2px solid #fff;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      transition: transform 0.15s;
+    }
+    .audio-panel .volume-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    .audio-panel .volume-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #1ed760;
+      border: 2px solid #fff;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .audio-panel .volume-pct {
+      color: rgba(255,255,255,0.6);
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 600px) {
+      .audio-panel { padding: 6px 12px 6px 8px; gap: 6px; }
+      .audio-panel .volume-slider { width: 60px; }
+    }
 
     @media (max-width: 600px) {
       .wheel-wrapper { width: 290px; height: 290px; }
@@ -431,10 +514,20 @@
     </iframe>
   </div>
 
-  <!-- Bouton musique -->
-  <button class="audio-toggle" id="audioToggle" aria-label="Afficher/masquer le lecteur Spotify" title="Musique : distant ocean — alyzea">
-    <i class="ti ti-music" id="audioIcon"></i>
-  </button>
+  <!-- Panneau audio -->
+  <div class="audio-panel" id="audioPanel">
+    <!-- Bouton Spotify -->
+    <button class="panel-btn" id="spotifyToggle" aria-label="Lecteur Spotify" title="distant ocean — alyzea">
+      <i class="ti ti-brand-spotify"></i>
+    </button>
+    <div class="divider"></div>
+    <!-- Volume -->
+    <div class="volume-group">
+      <i class="ti ti-volume volume-icon" id="volumeIcon" title="Muet / Activer"></i>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50" aria-label="Volume de l'ambiance">
+      <span class="volume-pct" id="volumePct">50%</span>
+    </div>
+  </div>
 
   <h1>🎡 Roue de la Chance</h1>
   <p class="subtitle">Personnalisez les cases, les probabilités et tournez !</p>
@@ -482,6 +575,123 @@
 
   <script>
     /* ═══════════════════════════════════════════
+       Son d'océan procédural (Web Audio API)
+    ═══════════════════════════════════════════ */
+    let oceanAudioCtx = null;
+    let oceanGain = null;
+    let oceanMuted = false;
+    let oceanVolume = 0.5;
+
+    function initOceanAudio() {
+      if (oceanAudioCtx) return;
+      oceanAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      oceanGain = oceanAudioCtx.createGain();
+      oceanGain.gain.value = oceanMuted ? 0 : oceanVolume * 0.5;
+      oceanGain.connect(oceanAudioCtx.destination);
+
+      const bufferSize = oceanAudioCtx.sampleRate * 4;
+
+      // ── Couche 1 : vagues profondes ──
+      const noiseBuffer = oceanAudioCtx.createBuffer(2, bufferSize, oceanAudioCtx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = noiseBuffer.getChannelData(ch);
+        for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+      }
+      const noiseSource = oceanAudioCtx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      noiseSource.loop = true;
+
+      const lowPass = oceanAudioCtx.createBiquadFilter();
+      lowPass.type = 'lowpass'; lowPass.frequency.value = 400; lowPass.Q.value = 0.7;
+
+      const bandPass = oceanAudioCtx.createBiquadFilter();
+      bandPass.type = 'bandpass'; bandPass.frequency.value = 250; bandPass.Q.value = 0.5;
+
+      const lfo = oceanAudioCtx.createOscillator();
+      lfo.type = 'sine'; lfo.frequency.value = 0.08;
+      const lfoGain = oceanAudioCtx.createGain(); lfoGain.gain.value = 150;
+      lfo.connect(lfoGain); lfoGain.connect(lowPass.frequency); lfo.start();
+
+      const lfo2 = oceanAudioCtx.createOscillator();
+      lfo2.type = 'sine'; lfo2.frequency.value = 0.12;
+      const lfo2Gain = oceanAudioCtx.createGain(); lfo2Gain.gain.value = 0.12;
+      const baseVolumeGain = oceanAudioCtx.createGain(); baseVolumeGain.gain.value = 0.22;
+      lfo2.connect(lfo2Gain); lfo2Gain.connect(baseVolumeGain.gain); lfo2.start();
+
+      // ── Couche 2 : écume / clapotis ──
+      const noiseBuffer2 = oceanAudioCtx.createBuffer(2, bufferSize, oceanAudioCtx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = noiseBuffer2.getChannelData(ch);
+        for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+      }
+      const noiseSource2 = oceanAudioCtx.createBufferSource();
+      noiseSource2.buffer = noiseBuffer2; noiseSource2.loop = true;
+
+      const highPass = oceanAudioCtx.createBiquadFilter();
+      highPass.type = 'highpass'; highPass.frequency.value = 800; highPass.Q.value = 0.3;
+      const foamGain = oceanAudioCtx.createGain(); foamGain.gain.value = 0.05;
+
+      const lfo3 = oceanAudioCtx.createOscillator();
+      lfo3.type = 'sine'; lfo3.frequency.value = 0.2;
+      const lfo3Gain = oceanAudioCtx.createGain(); lfo3Gain.gain.value = 0.04;
+      lfo3.connect(lfo3Gain); lfo3Gain.connect(foamGain.gain); lfo3.start();
+
+      // Chaînage
+      noiseSource.connect(lowPass); lowPass.connect(bandPass);
+      bandPass.connect(baseVolumeGain); baseVolumeGain.connect(oceanGain);
+      noiseSource2.connect(highPass); highPass.connect(foamGain); foamGain.connect(oceanGain);
+
+      noiseSource.start(); noiseSource2.start();
+    }
+
+    function setOceanVolume(val) {
+      oceanVolume = val;
+      if (oceanGain && oceanAudioCtx && !oceanMuted) {
+        oceanGain.gain.linearRampToValueAtTime(val * 0.5, oceanAudioCtx.currentTime + 0.1);
+      }
+    }
+
+    function toggleOceanMute() {
+      if (!oceanAudioCtx) initOceanAudio();
+      if (oceanAudioCtx.state === 'suspended') oceanAudioCtx.resume();
+
+      oceanMuted = !oceanMuted;
+      const icon = document.getElementById('volumeIcon');
+      const slider = document.getElementById('volumeSlider');
+
+      if (oceanMuted) {
+        oceanGain.gain.linearRampToValueAtTime(0, oceanAudioCtx.currentTime + 0.3);
+        icon.className = 'ti ti-volume-off volume-icon';
+        slider.value = 0;
+        document.getElementById('volumePct').textContent = '0%';
+      } else {
+        const restore = oceanVolume > 0 ? oceanVolume : 0.5;
+        oceanVolume = restore;
+        oceanGain.gain.linearRampToValueAtTime(restore * 0.5, oceanAudioCtx.currentTime + 0.3);
+        icon.className = 'ti ti-volume volume-icon';
+        slider.value = Math.round(restore * 100);
+        document.getElementById('volumePct').textContent = Math.round(restore * 100) + '%';
+      }
+    }
+
+    // Slider de volume
+    document.getElementById('volumeSlider').addEventListener('input', function() {
+      if (!oceanAudioCtx) initOceanAudio();
+      if (oceanAudioCtx.state === 'suspended') oceanAudioCtx.resume();
+
+      const val = parseInt(this.value) / 100;
+      oceanMuted = val === 0;
+      const icon = document.getElementById('volumeIcon');
+      icon.className = val === 0 ? 'ti ti-volume-off volume-icon' : 'ti ti-volume volume-icon';
+      document.getElementById('volumePct').textContent = Math.round(val * 100) + '%';
+      setOceanVolume(val);
+    });
+
+    // Clic sur l'icône volume → mute/unmute
+    document.getElementById('volumeIcon').addEventListener('click', toggleOceanMute);
+
+    /* ═══════════════════════════════════════════
        Lecteur Spotify (distant ocean — alyzea)
     ═══════════════════════════════════════════ */
     let spotifyVisible = false;
@@ -489,7 +699,7 @@
     function toggleSpotifyPlayer() {
       spotifyVisible = !spotifyVisible;
       const player = document.getElementById('spotifyPlayer');
-      const btn = document.getElementById('audioToggle');
+      const btn = document.getElementById('spotifyToggle');
 
       if (spotifyVisible) {
         player.classList.remove('hidden');
@@ -500,7 +710,7 @@
       }
     }
 
-    document.getElementById('audioToggle').addEventListener('click', toggleSpotifyPlayer);
+    document.getElementById('spotifyToggle').addEventListener('click', toggleSpotifyPlayer);
 
     /* ═══════════════════════════════════════════
        Bulles d'océan (générées dynamiquement)
