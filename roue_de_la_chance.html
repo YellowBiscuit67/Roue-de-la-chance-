@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roue de la Chance</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f4f8;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.5px;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #777;
+      margin-bottom: 2rem;
+    }
+
+    .main-layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    /* ── Wheel area ── */
+    .wheel-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      width: 360px;
+      height: 360px;
+    }
+
+    #wheelCanvas {
+      display: block;
+      border-radius: 50%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+    }
+
+    .pointer {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 36px solid #1a1a1a;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
+      z-index: 10;
+    }
+
+    .spin-btn {
+      padding: 12px 44px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 50px;
+      border: none;
+      background: #534AB7;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 4px 14px rgba(83,74,183,0.35);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spin-btn:hover { background: #3C3489; box-shadow: 0 6px 18px rgba(83,74,183,0.45); }
+    .spin-btn:active { transform: scale(0.97); }
+    .spin-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+    .result-box {
+      min-height: 48px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+      text-align: center;
+      padding: 10px 28px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1.5px solid #e0e0e0;
+      width: 360px;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    /* ── Editor ── */
+    .editor {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 16px;
+      padding: 1.5rem;
+      width: 360px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+
+    .editor h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 14px;
+    }
+
+    .col-headers {
+      display: grid;
+      grid-template-columns: 1fr 90px 52px 32px;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #999;
+      margin-bottom: 6px;
+      padding: 0 2px;
+    }
+
+    .entries-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .entries-list::-webkit-scrollbar { width: 4px; }
+    .entries-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+    .entry-row {
+      display: grid;
+      grid-template-columns: 1fr 90px 52px 32px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .entry-row input[type=text],
+    .entry-row input[type=number] {
+      font-size: 13px;
+      padding: 6px 10px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      background: #fafafa;
+      color: #1a1a1a;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .entry-row input[type=text]:focus,
+    .entry-row input[type=number]:focus {
+      outline: none;
+      border-color: #7F77DD;
+      background: #fff;
+    }
+
+    .entry-row input[type=number] { text-align: right; }
+
+    .entry-row input[type=color] {
+      height: 34px;
+      width: 52px;
+      padding: 3px 4px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      background: #fafafa;
+    }
+
+    .del-btn {
+      width: 32px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: #fafafa;
+      color: #bbb;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .del-btn:hover { background: #fff0f0; color: #e24b4a; border-color: #f9c1c1; }
+
+    .add-btn {
+      width: 100%;
+      padding: 9px;
+      font-size: 13px;
+      border: 1.5px dashed #c8c8c8;
+      border-radius: 8px;
+      background: transparent;
+      color: #999;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .add-btn:hover { background: #f5f4ff; color: #534AB7; border-color: #b0abee; }
+
+    .total-row {
+      font-size: 12px;
+      color: #999;
+      text-align: right;
+      padding-top: 8px;
+      border-top: 1px solid #f0f0f0;
+      margin-top: 6px;
+    }
+
+    .total-row .total-val { color: #1a1a1a; font-weight: 600; }
+    .total-warn { color: #e24b4a; display: none; }
+
+    @media (max-width: 600px) {
+      .wheel-wrapper { width: 290px; height: 290px; }
+      #wheelCanvas { width: 290px; height: 290px; }
+      .result-box { width: 290px; }
+      .editor { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎡 Roue de la Chance</h1>
+  <p class="subtitle">Personnalisez les cases, les probabilités et tournez !</p>
+
+  <div class="main-layout">
+
+    <div class="wheel-area">
+      <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="360" height="360"></canvas>
+      </div>
+      <button class="spin-btn" id="spinBtn" onclick="spin()">
+        <i class="ti ti-player-play"></i> Tourner !
+      </button>
+      <div class="result-box" id="resultBox"></div>
+    </div>
+
+    <div class="editor">
+      <h3>⚙️ Configurer les cases</h3>
+      <div class="col-headers">
+        <span>Nom</span>
+        <span>Prob. (%)</span>
+        <span>Couleur</span>
+        <span></span>
+      </div>
+      <div class="entries-list" id="entriesList"></div>
+      <button class="add-btn" onclick="addEntry()">
+        <i class="ti ti-plus"></i> Ajouter une case
+      </button>
+      <div class="total-row">
+        Total : <span class="total-val" id="totalPct">0</span>%
+        <span class="total-warn" id="totalWarn"> — doit être 100%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const COLORS = [
+      '#7F77DD','#1D9E75','#D85A30','#378ADD','#D4537E',
+      '#639922','#BA7517','#E24B4A','#534AB7','#0F6E56',
+      '#993C1D','#185FA5','#993356','#3B6D11','#854F0B'
+    ];
+
+    let entries = [
+      { name: 'Case 1', pct: 25, color: COLORS[0] },
+      { name: 'Case 2', pct: 25, color: COLORS[1] },
+      { name: 'Case 3', pct: 25, color: COLORS[2] },
+      { name: 'Case 4', pct: 25, color: COLORS[3] },
+    ];
+
+    let spinning = false, currentAngle = 0;
+
+    function addEntry() {
+      entries.push({ name: 'Nouvelle case', pct: 0, color: COLORS[entries.length % COLORS.length] });
+      render();
+    }
+
+    function removeEntry(i) {
+      if (entries.length <= 1) return;
+      entries.splice(i, 1);
+      render();
+    }
+
+    function render() {
+      const list = document.getElementById('entriesList');
+      list.innerHTML = '';
+      entries.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'entry-row';
+        row.innerHTML = `
+          <input type="text" value="${e.name}" placeholder="Nom"
+            oninput="entries[${i}].name=this.value; drawWheel()">
+          <input type="number" min="0" max="100" step="0.1" value="${e.pct}"
+            oninput="entries[${i}].pct=parseFloat(this.value)||0; updateTotal(); drawWheel()">
+          <input type="color" value="${e.color}"
+            oninput="entries[${i}].color=this.value; drawWheel()">
+          <button class="del-btn" onclick="removeEntry(${i})" title="Supprimer">
+            <i class="ti ti-trash"></i>
+          </button>`;
+        list.appendChild(row);
+      });
+      updateTotal();
+      drawWheel();
+    }
+
+    function updateTotal() {
+      const t = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
+      document.getElementById('totalPct').textContent = Math.round(t * 10) / 10;
+      document.getElementById('totalWarn').style.display = Math.abs(t - 100) > 0.01 ? 'inline' : 'none';
+    }
+
+    function drawWheel(angle) {
+      const canvas = document.getElementById('wheelCanvas');
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      const cx = size / 2, cy = size / 2, r = size / 2 - 4;
+      ctx.clearRect(0, 0, size, size);
+
+      const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
+      if (total <= 0) {
+        ctx.fillStyle = '#ddd';
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        return;
+      }
+
+      const a0 = angle !== undefined ? angle : currentAngle;
+      let start = a0 - Math.PI / 2;
+      const valid = entries.filter(e => (parseFloat(e.pct) || 0) > 0);
+
+      valid.forEach(e => {
+        const slice = (parseFloat(e.pct) / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, start, start + slice);
+        ctx.closePath();
+        ctx.fillStyle = e.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        if (slice > 0.06) {
+          const mid = start + slice / 2;
+          const tr = r * 0.62;
+          ctx.save();
+          ctx.translate(cx + Math.cos(mid) * tr, cy + Math.sin(mid) * tr);
+          ctx.rotate(mid + Math.PI / 2);
+          const fs = slice > 0.3 ? 14 : slice > 0.15 ? 12 : 10;
+          ctx.font = `600 ${fs}px 'Segoe UI', Arial, sans-serif`;
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const maxW = r * 0.68;
+          let txt = e.name;
+          if (ctx.measureText(txt).width > maxW)
+            txt = txt.substring(0, Math.floor(maxW / (fs * 0.6))) + '…';
+          ctx.shadowColor = 'rgba(0,0,0,0.25)';
+          ctx.shadowBlur = 3;
+          ctx.fillText(txt, 0, 0);
+          ctx.restore();
+        }
+        start += slice;
+      });
+
+      // Center hub
+      ctx.beginPath();
+      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    function getWinner(angle) {
+      const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
+      if (total <= 0) return null;
+      let norm = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      let pointer = (Math.PI * 2 - norm + Math.PI * 2 * 1.5) % (Math.PI * 2);
+      let start = 0;
+      const valid = entries.filter(e => (parseFloat(e.pct) || 0) > 0);
+      for (const e of valid) {
+        const slice = (parseFloat(e.pct) / total) * Math.PI * 2;
+        if (pointer >= start && pointer < start + slice) return e;
+        start += slice;
+      }
+      return valid[0];
+    }
+
+    function spin() {
+      if (spinning) return;
+      const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
+      if (Math.abs(total - 100) > 0.5) {
+        const box = document.getElementById('resultBox');
+        box.style.display = 'block';
+        box.innerHTML = '⚠️ Les probabilités doivent totaliser 100%';
+        return;
+      }
+      spinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('resultBox').style.display = 'none';
+
+      const extra = Math.PI * 2 * (8 + Math.random() * 6);
+      const dur = 4000 + Math.random() * 1500;
+      const startTime = performance.now();
+      const startAngle = currentAngle;
+
+      function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+      function frame(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / dur, 1);
+        currentAngle = startAngle + extra * easeOut(t);
+        drawWheel(currentAngle);
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          spinning = false;
+          document.getElementById('spinBtn').disabled = false;
+          const winner = getWinner(currentAngle);
+          const box = document.getElementById('resultBox');
+          box.style.display = 'block';
+          box.innerHTML = winner
+            ? `🎉 <strong style="color:${winner.color}">${winner.name}</strong>`
+            : '';
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    render();
+  </script>
+</body>
+</html>
