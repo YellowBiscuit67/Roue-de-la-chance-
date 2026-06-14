@@ -354,7 +354,30 @@
       font-size: 13px;
     }
 
-    /* ── Audio control ── */
+    /* ── Spotify player ── */
+    .spotify-player {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      padding: 12px 16px 16px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 100%);
+      transition: transform 0.4s ease, opacity 0.3s ease;
+    }
+    .spotify-player.hidden {
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .spotify-player iframe {
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    /* ── Audio toggle button ── */
     .audio-toggle {
       position: fixed;
       top: 16px;
@@ -375,8 +398,7 @@
       transition: background 0.2s, transform 0.15s, border-color 0.2s;
     }
     .audio-toggle:hover { background: rgba(14,124,138,0.85); border-color: rgba(255,255,255,0.7); transform: scale(1.08); }
-    .audio-toggle.muted { background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.2); }
-    .audio-toggle.muted i::before { content: '\eb-c'; } /* will be handled in JS */
+    .audio-toggle.active { background: rgba(30,215,96,0.6); border-color: rgba(30,215,96,0.6); }
 
     @media (max-width: 600px) {
       .wheel-wrapper { width: 290px; height: 290px; }
@@ -396,9 +418,22 @@
     <div class="wave wave-3"></div>
   </div>
 
+  <!-- Lecteur Spotify -->
+  <div class="spotify-player hidden" id="spotifyPlayer">
+    <iframe 
+      src="https://open.spotify.com/embed/track/1e2GFDc9UFo0sdLIJ0KQMd?theme=0" 
+      width="340" 
+      height="80" 
+      frameBorder="0" 
+      allowfullscreen="" 
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+      loading="lazy">
+    </iframe>
+  </div>
+
   <!-- Bouton musique -->
-  <button class="audio-toggle" id="audioToggle" aria-label="Activer/désactiver le son de l'océan" title="Son de l'océan">
-    <i class="ti ti-volume-off" id="audioIcon"></i>
+  <button class="audio-toggle" id="audioToggle" aria-label="Afficher/masquer le lecteur Spotify" title="Musique : distant ocean — alyzea">
+    <i class="ti ti-music" id="audioIcon"></i>
   </button>
 
   <h1>🎡 Roue de la Chance</h1>
@@ -447,139 +482,25 @@
 
   <script>
     /* ═══════════════════════════════════════════
-       Son d'océan procédural (Web Audio API)
+       Lecteur Spotify (distant ocean — alyzea)
     ═══════════════════════════════════════════ */
-    let oceanAudioCtx = null;
-    let oceanPlaying = false;
-    let oceanMuted = true; // démarré en muet (autoplay bloqué)
-    let oceanGain = null;
+    let spotifyVisible = false;
 
-    function initOceanAudio() {
-      if (oceanAudioCtx) return;
-      oceanAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-      // Master gain
-      oceanGain = oceanAudioCtx.createGain();
-      oceanGain.gain.value = 0; // démarrer silencieux
-      oceanGain.connect(oceanAudioCtx.destination);
-
-      // ── Bruit blanc (source des vagues) ──
-      const bufferSize = oceanAudioCtx.sampleRate * 4;
-      const noiseBuffer = oceanAudioCtx.createBuffer(2, bufferSize, oceanAudioCtx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) {
-        const data = noiseBuffer.getChannelData(ch);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-      }
-      const noiseSource = oceanAudioCtx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      noiseSource.loop = true;
-
-      // ── Filtre low-pass (bruit de vagues) ──
-      const lowPass = oceanAudioCtx.createBiquadFilter();
-      lowPass.type = 'lowpass';
-      lowPass.frequency.value = 400;
-      lowPass.Q.value = 0.7;
-
-      // ── Filtre band-pass (mouvement de l'eau) ──
-      const bandPass = oceanAudioCtx.createBiquadFilter();
-      bandPass.type = 'bandpass';
-      bandPass.frequency.value = 250;
-      bandPass.Q.value = 0.5;
-
-      // ── LFO pour modulation des vagues (rythme océan) ──
-      const lfo = oceanAudioCtx.createOscillator();
-      lfo.type = 'sine';
-      lfo.frequency.value = 0.08; // cycle très lent (~12s par vague)
-      const lfoGain = oceanAudioCtx.createGain();
-      lfoGain.gain.value = 150; // modulation de fréquence du filtre
-      lfo.connect(lfoGain);
-      lfoGain.connect(lowPass.frequency);
-      lfo.start();
-
-      // ── LFO volume (va-et-vient des vagues) ──
-      const lfo2 = oceanAudioCtx.createOscillator();
-      lfo2.type = 'sine';
-      lfo2.frequency.value = 0.12; // cycle volume (~8s)
-      const lfo2Gain = oceanAudioCtx.createGain();
-      lfo2Gain.gain.value = 0.12;
-      const baseVolumeGain = oceanAudioCtx.createGain();
-      baseVolumeGain.gain.value = 0.18;
-      lfo2.connect(lfo2Gain);
-      lfo2Gain.connect(baseVolumeGain.gain);
-      lfo2.start();
-
-      // ── Deuxième couche de bruit (écume / détails haute fréquence) ──
-      const noiseBuffer2 = oceanAudioCtx.createBuffer(2, bufferSize, oceanAudioCtx.sampleRate);
-      for (let ch = 0; ch < 2; ch++) {
-        const data = noiseBuffer2.getChannelData(ch);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-      }
-      const noiseSource2 = oceanAudioCtx.createBufferSource();
-      noiseSource2.buffer = noiseBuffer2;
-      noiseSource2.loop = true;
-
-      const highPass = oceanAudioCtx.createBiquadFilter();
-      highPass.type = 'highpass';
-      highPass.frequency.value = 800;
-      highPass.Q.value = 0.3;
-
-      const foamGain = oceanAudioCtx.createGain();
-      foamGain.gain.value = 0.04;
-
-      // LFO pour les clapotis
-      const lfo3 = oceanAudioCtx.createOscillator();
-      lfo3.type = 'sine';
-      lfo3.frequency.value = 0.2;
-      const lfo3Gain = oceanAudioCtx.createGain();
-      lfo3Gain.gain.value = 0.03;
-      lfo3.connect(lfo3Gain);
-      lfo3Gain.connect(foamGain.gain);
-      lfo3.start();
-
-      // ── Chaînage ──
-      // Couche principale (vagues profondes)
-      noiseSource.connect(lowPass);
-      lowPass.connect(bandPass);
-      bandPass.connect(baseVolumeGain);
-      baseVolumeGain.connect(oceanGain);
-
-      // Couche écume (détails)
-      noiseSource2.connect(highPass);
-      highPass.connect(foamGain);
-      foamGain.connect(oceanGain);
-
-      noiseSource.start();
-      noiseSource2.start();
-      oceanPlaying = true;
-    }
-
-    function toggleOceanAudio() {
-      if (!oceanAudioCtx) initOceanAudio();
-
-      if (oceanAudioCtx.state === 'suspended') {
-        oceanAudioCtx.resume();
-      }
-
-      oceanMuted = !oceanMuted;
-      const icon = document.getElementById('audioIcon');
+    function toggleSpotifyPlayer() {
+      spotifyVisible = !spotifyVisible;
+      const player = document.getElementById('spotifyPlayer');
       const btn = document.getElementById('audioToggle');
 
-      if (oceanMuted) {
-        oceanGain.gain.linearRampToValueAtTime(0, oceanAudioCtx.currentTime + 0.5);
-        icon.className = 'ti ti-volume-off';
-        btn.classList.add('muted');
+      if (spotifyVisible) {
+        player.classList.remove('hidden');
+        btn.classList.add('active');
       } else {
-        oceanGain.gain.linearRampToValueAtTime(0.35, oceanAudioCtx.currentTime + 0.5);
-        icon.className = 'ti ti-volume';
-        btn.classList.remove('muted');
+        player.classList.add('hidden');
+        btn.classList.remove('active');
       }
     }
 
-    document.getElementById('audioToggle').addEventListener('click', toggleOceanAudio);
+    document.getElementById('audioToggle').addEventListener('click', toggleSpotifyPlayer);
 
     /* ═══════════════════════════════════════════
        Bulles d'océan (générées dynamiquement)
