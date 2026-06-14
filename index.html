@@ -1329,7 +1329,7 @@
     const SPIN_INITIAL_MIN = 0.35;      // vitesse initiale min (rad/frame)
     const SPIN_INITIAL_MAX = 0.55;      // vitesse initiale max (rad/frame)
     let tickAccumulator = 0;
-    const TICK_INTERVAL = Math.PI * 2 / 40; // tick sonore ~40 fois par tour
+    const TICK_INTERVAL = Math.PI * 2 / 20; // tick sonore ~20 fois par tour (chaque segment distinct)
 
     function spin() {
       if (spinning) return;
@@ -1408,8 +1408,9 @@
       requestAnimationFrame(physicsFrame);
     }
 
-    /* ── Tick sonore réaliste (généré par Web Audio API) ── */
+    /* ── Tick sonore réaliste style casino (généré par Web Audio API) ── */
     let tickAudioCtx = null;
+    let lastNoiseBuffer = null;
     function playTick(speed) {
       if (!tickAudioCtx) {
         tickAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1419,7 +1420,22 @@
       const now = tickAudioCtx.currentTime;
       const speedNorm = Math.min(speed / SPIN_INITIAL_MAX, 1);
 
-      // --- Impact mécanique (claquement sec) ---
+      // --- CLAC de clavier/clicquet casino (attaque tranchante) ---
+      const clacOsc = tickAudioCtx.createOscillator();
+      const clacGain = tickAudioCtx.createGain();
+      const clacDist = tickAudioCtx.createWaveShaperFunction ? null : null;
+      clacOsc.connect(clacGain);
+      clacGain.connect(tickAudioCtx.destination);
+      clacOsc.type = 'triangle';
+      clacOsc.frequency.setValueAtTime(800, now);
+      clacOsc.frequency.exponentialRampToValueAtTime(200, now + 0.015);
+      const clacVol = 0.25 + speedNorm * 0.35;
+      clacGain.gain.setValueAtTime(clacVol, now);
+      clacGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+      clacOsc.start(now);
+      clacOsc.stop(now + 0.04);
+
+      // --- Impact bois/métal (claquement principal du peg) ---
       const clickOsc = tickAudioCtx.createOscillator();
       const clickGain = tickAudioCtx.createGain();
       const clickFilter = tickAudioCtx.createBiquadFilter();
@@ -1428,50 +1444,76 @@
       clickGain.connect(tickAudioCtx.destination);
 
       clickOsc.type = 'square';
-      clickOsc.frequency.value = 120 + speedNorm * 80;
+      clickOsc.frequency.value = 160 + speedNorm * 100;
       clickFilter.type = 'bandpass';
-      clickFilter.frequency.value = 1800 + speedNorm * 600;
-      clickFilter.Q.value = 2.5;
+      clickFilter.frequency.value = 2500 + speedNorm * 1500;
+      clickFilter.Q.value = 1.8;
 
-      const clickVol = 0.06 + speedNorm * 0.14;
+      const clickVol = 0.15 + speedNorm * 0.3;
       clickGain.gain.setValueAtTime(clickVol, now);
-      clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
       clickOsc.start(now);
-      clickOsc.stop(now + 0.03);
+      clickOsc.stop(now + 0.035);
 
-      // --- Résonance métallique (tic aigu) ---
+      // --- Résonance métallique (ding de la roue de casino) ---
       const resOsc = tickAudioCtx.createOscillator();
+      const resOsc2 = tickAudioCtx.createOscillator();
       const resGain = tickAudioCtx.createGain();
       resOsc.connect(resGain);
+      resOsc2.connect(resGain);
       resGain.connect(tickAudioCtx.destination);
 
       resOsc.type = 'sine';
-      resOsc.frequency.value = 2200 + speedNorm * 1800;
-      const resVol = 0.02 + speedNorm * 0.06;
-      resGain.gain.setValueAtTime(resVol, now + 0.005);
-      resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-      resOsc.start(now + 0.003);
-      resOsc.stop(now + 0.05);
+      resOsc.frequency.value = 3200 + speedNorm * 2000;
+      resOsc2.type = 'sine';
+      resOsc2.frequency.value = (3200 + speedNorm * 2000) * 1.5; // harmonique quinte
+      const resVol = 0.06 + speedNorm * 0.15;
+      resGain.gain.setValueAtTime(0.001, now);
+      resGain.gain.linearRampToValueAtTime(resVol, now + 0.003);
+      resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      resOsc.start(now + 0.002);
+      resOsc2.start(now + 0.002);
+      resOsc.stop(now + 0.09);
+      resOsc2.stop(now + 0.09);
 
-      // --- Bruit de cliquet (bruit blanc court) ---
-      const bufferSize = tickAudioCtx.sampleRate * 0.02;
-      const noiseBuffer = tickAudioCtx.createBuffer(1, bufferSize, tickAudioCtx.sampleRate);
-      const noiseData = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) noiseData[i] = Math.random() * 2 - 1;
+      // --- Bruit de cliquet (bruit blanc très court, percussif) ---
+      if (!lastNoiseBuffer || lastNoiseBuffer.length !== Math.floor(tickAudioCtx.sampleRate * 0.015)) {
+        const bufferSize = Math.floor(tickAudioCtx.sampleRate * 0.015);
+        lastNoiseBuffer = tickAudioCtx.createBuffer(1, bufferSize, tickAudioCtx.sampleRate);
+        const noiseData = lastNoiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) noiseData[i] = Math.random() * 2 - 1;
+      }
       const noiseSource = tickAudioCtx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
+      noiseSource.buffer = lastNoiseBuffer;
       const noiseGain = tickAudioCtx.createGain();
       const noiseFilter = tickAudioCtx.createBiquadFilter();
       noiseSource.connect(noiseFilter);
       noiseFilter.connect(noiseGain);
       noiseGain.connect(tickAudioCtx.destination);
       noiseFilter.type = 'highpass';
-      noiseFilter.frequency.value = 3000 + speedNorm * 2000;
-      const noiseVol = 0.015 + speedNorm * 0.04;
+      noiseFilter.frequency.value = 4000 + speedNorm * 3000;
+      const noiseVol = 0.08 + speedNorm * 0.12;
       noiseGain.gain.setValueAtTime(noiseVol, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
       noiseSource.start(now);
-      noiseSource.stop(now + 0.02);
+      noiseSource.stop(now + 0.015);
+
+      // --- Corps du son (résonance basse de la roue) ---
+      const bodyOsc = tickAudioCtx.createOscillator();
+      const bodyGain = tickAudioCtx.createGain();
+      const bodyFilter = tickAudioCtx.createBiquadFilter();
+      bodyOsc.connect(bodyFilter);
+      bodyFilter.connect(bodyGain);
+      bodyGain.connect(tickAudioCtx.destination);
+      bodyOsc.type = 'sine';
+      bodyOsc.frequency.value = 80 + speedNorm * 40;
+      bodyFilter.type = 'lowpass';
+      bodyFilter.frequency.value = 400;
+      const bodyVol = 0.08 + speedNorm * 0.12;
+      bodyGain.gain.setValueAtTime(bodyVol, now);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      bodyOsc.start(now);
+      bodyOsc.stop(now + 0.065);
     }
 
     /* ═══════════════════════════════════════════
