@@ -1279,8 +1279,21 @@
     }
 
     /* ═══════════════════════════════════════════
-       Animation de rotation
+       Animation de rotation — Physique réaliste
+       Modèle : vitesse angulaire avec friction
+       ω(t+dt) = ω(t) - friction * ω(t)² * dt
+       (friction quadratique = résistance de l'air)
     ═══════════════════════════════════════════ */
+    let angularVelocity = 0;
+    let lastFrameTime = 0;
+    const SPIN_FRICTION = 0.985;       // friction linéaire (multipliée chaque frame à 60fps)
+    const SPIN_FRICTION_QUAD = 0.0003;  // friction quadratique (résistance air)
+    const SPIN_MIN_VELOCITY = 0.0008;   // seuil d'arrêt (rad/frame)
+    const SPIN_INITIAL_MIN = 0.35;      // vitesse initiale min (rad/frame)
+    const SPIN_INITIAL_MAX = 0.55;      // vitesse initiale max (rad/frame)
+    let tickAccumulator = 0;
+    const TICK_INTERVAL = Math.PI * 2 / 40; // tick sonore ~40 fois par tour
+
     function spin() {
       if (spinning) return;
       const total = entries.reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
@@ -1306,21 +1319,37 @@
       document.getElementById('spinBtn').disabled = true;
       document.getElementById('resultBox').style.display = 'none';
 
-      const extra = Math.PI * 2 * (8 + Math.random() * 6);
-      const dur = 4000 + Math.random() * 1500;
-      const startTime = performance.now();
-      const startAngle = currentAngle;
+      // Impulsion initiale aléatoire
+      angularVelocity = SPIN_INITIAL_MIN + Math.random() * (SPIN_INITIAL_MAX - SPIN_INITIAL_MIN);
+      tickAccumulator = 0;
+      lastFrameTime = performance.now();
 
-      function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+      function physicsFrame(now) {
+        // Calcul du dt en secondes pour la physique
+        const dt = Math.min((now - lastFrameTime) / 1000, 0.05); // plafonné à 50ms
+        lastFrameTime = now;
 
-      function frame(now) {
-        const elapsed = now - startTime;
-        const t = Math.min(elapsed / dur, 1);
-        currentAngle = startAngle + extra * easeOut(t);
+        // Friction linéaire + quadratique
+        const speed = Math.abs(angularVelocity);
+        const frictionForce = SPIN_FRICTION_QUAD * speed * speed;
+        angularVelocity -= Math.sign(angularVelocity) * frictionForce;
+        angularVelocity *= SPIN_FRICTION;
+
+        // Mise à jour de l'angle
+        currentAngle += angularVelocity;
+        tickAccumulator += Math.abs(angularVelocity);
+
+        // Tick sonore à chaque passage de segment
+        if (tickAccumulator >= TICK_INTERVAL) {
+          tickAccumulator -= TICK_INTERVAL;
+          playTick(Math.abs(angularVelocity));
+        }
+
         drawWheel(currentAngle);
-        if (t < 1) {
-          requestAnimationFrame(frame);
-        } else {
+
+        // Vérifier si la roue est assez lente pour s'arrêter
+        if (Math.abs(angularVelocity) < SPIN_MIN_VELOCITY) {
+          angularVelocity = 0;
           spinning = false;
           document.getElementById('spinBtn').disabled = false;
           const winner = getWinner(currentAngle);
@@ -1333,9 +1362,37 @@
           } else {
             box.textContent = '';
           }
+        } else {
+          requestAnimationFrame(physicsFrame);
         }
       }
-      requestAnimationFrame(frame);
+      requestAnimationFrame(physicsFrame);
+    }
+
+    /* ── Tick sonore (généré par Web Audio API) ── */
+    let tickAudioCtx = null;
+    function playTick(speed) {
+      if (!tickAudioCtx) {
+        tickAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (tickAudioCtx.state === 'suspended') tickAudioCtx.resume();
+
+      const osc = tickAudioCtx.createOscillator();
+      const gain = tickAudioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(tickAudioCtx.destination);
+
+      // Le son du tick dépend de la vitesse : aigu et fort quand rapide, grave et doux quand lent
+      const speedNorm = Math.min(speed / SPIN_INITIAL_MAX, 1);
+      osc.frequency.value = 600 + speedNorm * 400;
+      osc.type = 'sine';
+
+      const vol = 0.03 + speedNorm * 0.07;
+      gain.gain.setValueAtTime(vol, tickAudioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, tickAudioCtx.currentTime + 0.04);
+
+      osc.start(tickAudioCtx.currentTime);
+      osc.stop(tickAudioCtx.currentTime + 0.05);
     }
 
     /* ═══════════════════════════════════════════
